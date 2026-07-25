@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from apps.identity.models import User
+from apps.identity.models import Organization, User, Workspace
 
 
 @admin.register(User)
@@ -12,3 +12,15 @@ class UserAdmin(DjangoUserAdmin):
     fieldsets = DjangoUserAdmin.fieldsets + (
         ("SCI CREATE profile", {"fields": ("display_name", "preferred_language", "is_email_verified")}),
     )
+
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "owner", "is_active", "created_at")
+    search_fields = ("name", "slug")
+
+
+@admin.register(Workspace)
+class WorkspaceAdmin(admin.ModelAdmin):
+    list_display = ("name", "owner_user", "organization", "is_default", "created_at")
+    search_fields = ("name",)
