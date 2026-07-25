@@ -34,8 +34,7 @@ class User(AbstractUser):
 class Organization(models.Model):
     """
     An organization owns one or more Workspaces once Phase 2 team
-    collaboration is enabled. Created now so Workspace.organization has
-    somewhere to point without a later schema change.
+    collaboration is enabled.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -83,3 +82,33 @@ class Workspace(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Role(models.TextChoices):
+    ADMIN = "admin", "Administrator"
+    MANAGER = "manager", "Manager"
+    EDITOR = "editor", "Editor"
+    MEMBER = "member", "Member"
+
+
+class WorkspaceMember(models.Model):
+    """
+    Links a user to an organization workspace with a role. Personal
+    workspaces don't need membership rows - the owner_user FK on
+    Workspace is enough for those.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="workspace_memberships")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+    invited_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("workspace", "user")
+
+    def __str__(self):
+        return f"{self.user.email} @ {self.workspace.name} ({self.role})"
