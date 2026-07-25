@@ -56,3 +56,31 @@ def test_health_endpoint():
     response = client.get("/api/v1/system/health/")
     assert response.status_code == 200
     assert response.data["status"] == "ok"
+
+
+@pytest.mark.django_db
+def test_owner_has_admin_role_in_personal_workspace():
+    from apps.identity.models import Role, User, Workspace
+    from services.auth_service.service import user_has_permission, user_role_in_workspace
+
+    user = User.objects.create_user(email="owner@scicreate.com", username="owner@scicreate.com", password="a-strong-password-1")
+    workspace = Workspace.objects.create(name="Owner's Workspace", owner_user=user, is_default=True)
+
+    assert user_role_in_workspace(user, workspace) == Role.ADMIN
+    assert user_has_permission(user, workspace, "billing.manage") is True
+
+
+@pytest.mark.django_db
+def test_member_role_cannot_manage_billing():
+    from apps.identity.models import Organization, Role, User, Workspace, WorkspaceMember
+    from services.auth_service.service import user_has_permission
+
+    owner = User.objects.create_user(email="org-owner@scicreate.com", username="org-owner@scicreate.com", password="a-strong-password-1")
+    member = User.objects.create_user(email="org-member@scicreate.com", username="org-member@scicreate.com", password="a-strong-password-1")
+
+    org = Organization.objects.create(name="Test Org", slug="test-org", owner=owner)
+    workspace = Workspace.objects.create(name="Test Org Workspace", organization=org)
+    WorkspaceMember.objects.create(workspace=workspace, user=member, role=Role.MEMBER)
+
+    assert user_has_permission(member, workspace, "billing.manage") is False
+    assert user_has_permission(member, workspace, "content.read") is True

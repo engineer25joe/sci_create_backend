@@ -1,11 +1,18 @@
 """
 auth_service - the only place authentication/authorization business
 logic is allowed to live (View -> Service -> Model, per our architecture).
-Views call these functions; they never create Users/Workspaces directly.
+Views call these functions; they never create/query Users, Workspaces,
+or WorkspaceMembers directly for anything auth-related.
 """
 from django.db import transaction
 
-from apps.identity.models import User, Workspace
+from apps.identity.models import Role, User, Workspace, WorkspaceMember
+
+# Roles ranked by privilege - used for simple "does this role meet the
+# bar" checks. Fine-grained per-permission-string checks (e.g.
+# "content.publish", "billing.manage") can replace this ranking later
+# without changing any code that calls user_has_permission().
+_ROLE_RANK = {Role.MEMBER: 0, Role.EDITOR: 1, Role.MANAGER: 2, Role.ADMIN: 3}
 
 
 class RegistrationError(Exception):
@@ -33,3 +40,43 @@ def register_user(*, email: str, password: str, display_name: str = "") -> User:
     )
 
     return user
+
+
+def user_can_access_workspace(user: User, workspace: Workspace) -> bool:
+    """True if the user may see/use this workspace at all (read access).
+    Write/manage access is a separate, stricter check via
+    user_has_permission()."""
+    if workspace.is_personal:
+        return workspace.owner_user_id == user.id
+    return WorkspaceMember.objects.filter(workspace=workspace, user=user).exists()
+
+
+def user_role_in_workspace(user: User, workspace: Workspace) -> str | None:
+    if workspace.is_personal:
+        return Role.ADMIN if workspace.owner_user_id == user.id else None
+    membership = WorkspaceMember.objects.filter(workspace=workspace, user=user).first()
+    return membership.role if membership else None
+
+
+def user_has_permission(user: User, workspace: Workspace, permission: str) -> bool:
+    """
+    `permission` is a dotted string like "content.write" or
+    "billing.manage" - callers should already use this style even
+    though, for now, it's mapped onto simple role ranks. When a real
+    per-permission model replaces this, call sites don't change.
+    """
+    role = user_role_in_workspace(user, workspace)
+    if role is None:
+        return False
+    if permission.endswith(".manage"):
+        return _ROLE_RANK[role] >= _ROLE_RANK[Role.ADMIN]
+    if permission.endswith(".write") or permission.endswith(".publish"):
+        return _ROLE_RANK[role] >= _ROLE_RANK[Role.EDITOR]
+    return True
+
+
+def default_workspace_for(user: User) -> Workspace:
+    workspace = Workspace.objects.filter(owner_user=user, is_default=True).first()
+    if workspace is None:
+        raise ValueError("User has no default workspace.")
+    return workspace
