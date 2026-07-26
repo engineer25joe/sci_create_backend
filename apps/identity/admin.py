@@ -1,7 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from apps.identity.models import Organization, User, Workspace, WorkspaceMember
+from apps.identity.models import (
+    BrandProfile,
+    Organization,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
 
 
 @admin.register(User)
@@ -31,3 +37,9 @@ class WorkspaceMemberAdmin(admin.ModelAdmin):
     list_display = ("user", "workspace", "role", "invited_by", "created_at")
     list_filter = ("role",)
     search_fields = ("user__email", "workspace__name")
+
+
+@admin.register(BrandProfile)
+class BrandProfileAdmin(admin.ModelAdmin):
+    list_display = ("workspace", "business_name", "industry", "preferred_tone", "updated_at")
+    search_fields = ("business_name", "industry", "workspace__name")

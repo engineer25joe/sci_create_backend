@@ -112,3 +112,30 @@ class WorkspaceMember(models.Model):
 
     def __str__(self):
         return f"{self.user.email} @ {self.workspace.name} ({self.role})"
+
+
+class BrandProfile(models.Model):
+    """
+    One-to-one with a Workspace. Feeds the AI Context Engine (built in
+    Milestone 2) so generated content matches the user's brand instead
+    of being generic. Fields map directly to the "explicit memory"
+    fields we designed: business/brand name, industry, audience, tone,
+    style, languages, keywords, colors, social accounts, goals.
+    """
+
+    workspace = models.OneToOneField(Workspace, on_delete=models.CASCADE, related_name="brand_profile")
+    business_name = models.CharField(max_length=200, blank=True)
+    industry = models.CharField(max_length=150, blank=True)
+    target_audience = models.TextField(blank=True)
+    preferred_tone = models.CharField(max_length=100, blank=True)
+    writing_style = models.TextField(blank=True)
+    languages = models.JSONField(default=list, blank=True)
+    brand_keywords = models.JSONField(default=list, blank=True)
+    brand_colors = models.JSONField(default=list, blank=True)
+    social_accounts = models.JSONField(default=dict, blank=True)
+    goals = models.TextField(blank=True)
+    preferred_ai_provider = models.CharField(max_length=50, default="gemini")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Brand profile for {self.workspace.name}"
