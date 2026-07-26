@@ -118,3 +118,48 @@ def test_create_organization_rejects_duplicate_slug():
 
     with pytest.raises(ValueError):
         create_organization(owner=owner, name="Second Org", slug="shared-slug")
+
+
+@pytest.mark.django_db
+def test_admin_can_invite_member():
+    from apps.identity.models import Role, User, WorkspaceMember
+    from services.auth_service.service import create_organization, invite_member
+
+    admin = User.objects.create_user(email="invite-admin@scicreate.com", username="invite-admin@scicreate.com", password="a-strong-password-1")
+    invitee = User.objects.create_user(email="invitee@scicreate.com", username="invitee@scicreate.com", password="a-strong-password-1")
+
+    workspace = create_organization(owner=admin, name="Invite Org", slug="invite-org")
+    membership = invite_member(inviter=admin, workspace=workspace, email="invitee@scicreate.com", role=Role.EDITOR)
+
+    assert membership.role == Role.EDITOR
+    assert membership.invited_by == admin
+    assert WorkspaceMember.objects.filter(workspace=workspace, user=invitee).exists()
+
+
+@pytest.mark.django_db
+def test_member_cannot_invite_others():
+    from apps.identity.models import Role, User, WorkspaceMember
+    from services.auth_service.service import PermissionDeniedError, create_organization, invite_member
+
+    admin = User.objects.create_user(email="invite-admin-2@scicreate.com", username="invite-admin-2@scicreate.com", password="a-strong-password-1")
+    regular_member = User.objects.create_user(email="regular-member@scicreate.com", username="regular-member@scicreate.com", password="a-strong-password-1")
+    someone_new = User.objects.create_user(email="someone-new@scicreate.com", username="someone-new@scicreate.com", password="a-strong-password-1")
+
+    workspace = create_organization(owner=admin, name="Strict Org", slug="strict-org")
+    WorkspaceMember.objects.create(workspace=workspace, user=regular_member, role=Role.MEMBER)
+
+    with pytest.raises(PermissionDeniedError):
+        invite_member(inviter=regular_member, workspace=workspace, email="someone-new@scicreate.com", role=Role.MEMBER)
+
+
+@pytest.mark.django_db
+def test_cannot_invite_into_personal_workspace():
+    from apps.identity.models import Role, User, Workspace
+    from services.auth_service.service import invite_member
+
+    owner = User.objects.create_user(email="personal-owner@scicreate.com", username="personal-owner@scicreate.com", password="a-strong-password-1")
+    User.objects.create_user(email="someone@scicreate.com", username="someone@scicreate.com", password="a-strong-password-1")
+    workspace = Workspace.objects.create(name="Personal", owner_user=owner, is_default=True)
+
+    with pytest.raises(ValueError):
+        invite_member(inviter=owner, workspace=workspace, email="someone@scicreate.com", role=Role.MEMBER)

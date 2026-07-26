@@ -99,3 +99,36 @@ def create_organization(*, owner: User, name: str, slug: str) -> Workspace:
     WorkspaceMember.objects.create(workspace=workspace, user=owner, role=Role.ADMIN)
 
     return workspace
+
+
+class PermissionDeniedError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+@transaction.atomic
+def invite_member(*, inviter: User, workspace: Workspace, email: str, role: str) -> WorkspaceMember:
+    """
+    Only an ADMIN or MANAGER of an organization workspace may invite
+    new members. Personal workspaces can't have members invited into
+    them - that's a contradiction of what "personal" means.
+    """
+    if workspace.is_personal:
+        raise ValueError("Cannot invite members into a personal workspace.")
+
+    inviter_role = user_role_in_workspace(inviter, workspace)
+    if inviter_role is None or _ROLE_RANK[inviter_role] < _ROLE_RANK[Role.MANAGER]:
+        raise PermissionDeniedError("Only an admin or manager can invite members.")
+
+    try:
+        invitee = User.objects.get(email__iexact=email)
+    except User.DoesNotExist as exc:
+        raise ValueError(f"No user found with email '{email}'.") from exc
+
+    if WorkspaceMember.objects.filter(workspace=workspace, user=invitee).exists():
+        raise ValueError(f"{email} is already a member of this workspace.")
+
+    return WorkspaceMember.objects.create(
+        workspace=workspace, user=invitee, role=role, invited_by=inviter
+    )
