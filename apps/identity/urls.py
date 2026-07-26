@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.identity.views import (
+    BrandProfileView,
     CreateOrganizationView,
     InviteMemberView,
     MeView,
@@ -19,4 +20,5 @@ urlpatterns = [
     path("organizations/", CreateOrganizationView.as_view(), name="create_organization"),
     path("workspaces/<uuid:workspace_id>/invite/", InviteMemberView.as_view(), name="invite_member"),
     path("workspaces/<uuid:workspace_id>/members/", WorkspaceMembersView.as_view(), name="workspace_members"),
+    path("workspaces/<uuid:workspace_id>/brand-profile/", BrandProfileView.as_view(), name="brand_profile"),
 ]

@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from apps.identity.models import User, Workspace, WorkspaceMember
+from apps.identity.models import BrandProfile, User, Workspace, WorkspaceMember
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -54,3 +54,23 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
         model = WorkspaceMember
         fields = ("id", "email", "role", "created_at")
         read_only_fields = fields
+
+
+class BrandProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BrandProfile
+        fields = (
+            "business_name",
+            "industry",
+            "target_audience",
+            "preferred_tone",
+            "writing_style",
+            "languages",
+            "brand_keywords",
+            "brand_colors",
+            "social_accounts",
+            "goals",
+            "preferred_ai_provider",
+            "updated_at",
+        )
+        read_only_fields = ("updated_at",)

@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.identity.models import Workspace
+from apps.identity.models import BrandProfile, Workspace
 from apps.identity.serializers import (
+    BrandProfileSerializer,
     CreateOrganizationSerializer,
     InviteMemberSerializer,
     RegisterSerializer,
@@ -19,6 +20,7 @@ from services.auth_service.service import (
     create_organization,
     invite_member,
     register_user,
+    user_can_access_workspace,
 )
 
 
@@ -112,8 +114,6 @@ class WorkspaceMembersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, workspace_id):
-        from services.auth_service.service import user_can_access_workspace
-
         workspace = Workspace.objects.filter(id=workspace_id).first()
         if workspace is None:
             return Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -123,3 +123,41 @@ class WorkspaceMembersView(APIView):
 
         members = workspace.members.select_related("user").all()
         return Response(WorkspaceMemberSerializer(members, many=True).data)
+
+
+class BrandProfileView(APIView):
+    """
+    GET  /api/v1/identity/workspaces/<workspace_id>/brand-profile/
+    PATCH /api/v1/identity/workspaces/<workspace_id>/brand-profile/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_workspace_or_404(self, workspace_id, request):
+        workspace = Workspace.objects.filter(id=workspace_id).first()
+        if workspace is None:
+            return None, Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not user_can_access_workspace(request.user, workspace):
+            return None, Response(
+                {"error": "You do not have access to this workspace."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return workspace, None
+
+    def get(self, request, workspace_id):
+        workspace, error_response = self._get_workspace_or_404(workspace_id, request)
+        if error_response:
+            return error_response
+
+        profile, _ = BrandProfile.objects.get_or_create(workspace=workspace)
+        return Response(BrandProfileSerializer(profile).data)
+
+    def patch(self, request, workspace_id):
+        workspace, error_response = self._get_workspace_or_404(workspace_id, request)
+        if error_response:
+            return error_response
+
+        profile, _ = BrandProfile.objects.get_or_create(workspace=workspace)
+        serializer = BrandProfileSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
