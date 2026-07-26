@@ -84,3 +84,37 @@ def test_member_role_cannot_manage_billing():
 
     assert user_has_permission(member, workspace, "billing.manage") is False
     assert user_has_permission(member, workspace, "content.read") is True
+
+
+@pytest.mark.django_db
+def test_create_organization_creates_workspace_and_admin_membership():
+    from apps.identity.models import Role, User, WorkspaceMember
+    from services.auth_service.service import create_organization
+
+    owner = User.objects.create_user(
+        email="org-founder@scicreate.com", username="org-founder@scicreate.com", password="a-strong-password-1"
+    )
+
+    workspace = create_organization(owner=owner, name="Acme Agency", slug="acme-agency")
+
+    assert workspace.organization is not None
+    assert workspace.organization.name == "Acme Agency"
+    assert workspace.organization.slug == "acme-agency"
+
+    membership = WorkspaceMember.objects.get(workspace=workspace, user=owner)
+    assert membership.role == Role.ADMIN
+
+
+@pytest.mark.django_db
+def test_create_organization_rejects_duplicate_slug():
+    from apps.identity.models import User
+    from services.auth_service.service import create_organization
+
+    owner = User.objects.create_user(
+        email="dup-org-owner@scicreate.com", username="dup-org-owner@scicreate.com", password="a-strong-password-1"
+    )
+
+    create_organization(owner=owner, name="First Org", slug="shared-slug")
+
+    with pytest.raises(ValueError):
+        create_organization(owner=owner, name="Second Org", slug="shared-slug")

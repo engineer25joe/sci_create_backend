@@ -80,3 +80,22 @@ def default_workspace_for(user: User) -> Workspace:
     if workspace is None:
         raise ValueError("User has no default workspace.")
     return workspace
+
+
+@transaction.atomic
+def create_organization(*, owner: User, name: str, slug: str) -> Workspace:
+    """
+    Creates an Organization + its Workspace, and makes the creator an
+    admin WorkspaceMember. Returns the Workspace (not the Organization)
+    since that's what callers actually scope resources to.
+    """
+    from apps.identity.models import Organization
+
+    if Organization.objects.filter(slug=slug).exists():
+        raise ValueError(f"An organization with slug '{slug}' already exists.")
+
+    org = Organization.objects.create(name=name, slug=slug, owner=owner)
+    workspace = Workspace.objects.create(name=name, organization=org)
+    WorkspaceMember.objects.create(workspace=workspace, user=owner, role=Role.ADMIN)
+
+    return workspace

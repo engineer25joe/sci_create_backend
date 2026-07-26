@@ -35,3 +35,8 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         model = Workspace
         fields = ("id", "name", "organization", "is_personal", "is_default", "created_at")
         read_only_fields = ("id", "is_personal", "created_at")
+
+
+class CreateOrganizationSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    slug = serializers.SlugField(max_length=220)
