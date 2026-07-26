@@ -7,13 +7,17 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.identity.models import Workspace
 from apps.identity.serializers import (
     CreateOrganizationSerializer,
+    InviteMemberSerializer,
     RegisterSerializer,
     UserSerializer,
+    WorkspaceMemberSerializer,
     WorkspaceSerializer,
 )
 from services.auth_service.service import (
+    PermissionDeniedError,
     RegistrationError,
     create_organization,
+    invite_member,
     register_user,
 )
 
@@ -77,3 +81,26 @@ class CreateOrganizationView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(WorkspaceSerializer(workspace).data, status=status.HTTP_201_CREATED)
+
+
+class InviteMemberView(APIView):
+    """POST /api/v1/identity/workspaces/<workspace_id>/invite/"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, workspace_id):
+        workspace = Workspace.objects.filter(id=workspace_id).first()
+        if workspace is None:
+            return Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = InviteMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            membership = invite_member(inviter=request.user, workspace=workspace, **serializer.validated_data)
+        except PermissionDeniedError as exc:
+            return Response({"error": exc.message}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(WorkspaceMemberSerializer(membership).data, status=status.HTTP_201_CREATED)

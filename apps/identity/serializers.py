@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from apps.identity.models import User, Workspace
+from apps.identity.models import User, Workspace, WorkspaceMember
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -40,3 +40,17 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 class CreateOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     slug = serializers.SlugField(max_length=220)
+
+
+class InviteMemberSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=["admin", "manager", "editor", "member"], default="member")
+
+
+class WorkspaceMemberSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = WorkspaceMember
+        fields = ("id", "email", "role", "created_at")
+        read_only_fields = fields
