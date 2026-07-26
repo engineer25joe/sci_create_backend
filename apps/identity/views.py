@@ -104,3 +104,22 @@ class InviteMemberView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(WorkspaceMemberSerializer(membership).data, status=status.HTTP_201_CREATED)
+
+
+class WorkspaceMembersView(APIView):
+    """GET /api/v1/identity/workspaces/<workspace_id>/members/"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, workspace_id):
+        from services.auth_service.service import user_can_access_workspace
+
+        workspace = Workspace.objects.filter(id=workspace_id).first()
+        if workspace is None:
+            return Response({"error": "Workspace not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not user_can_access_workspace(request.user, workspace):
+            return Response({"error": "You do not have access to this workspace."}, status=status.HTTP_403_FORBIDDEN)
+
+        members = workspace.members.select_related("user").all()
+        return Response(WorkspaceMemberSerializer(members, many=True).data)

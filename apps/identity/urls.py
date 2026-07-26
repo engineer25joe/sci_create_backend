@@ -6,6 +6,7 @@ from apps.identity.views import (
     InviteMemberView,
     MeView,
     RegisterView,
+    WorkspaceMembersView,
 )
 
 app_name = "identity"
@@ -17,4 +18,5 @@ urlpatterns = [
     path("me/", MeView.as_view(), name="me"),
     path("organizations/", CreateOrganizationView.as_view(), name="create_organization"),
     path("workspaces/<uuid:workspace_id>/invite/", InviteMemberView.as_view(), name="invite_member"),
+    path("workspaces/<uuid:workspace_id>/members/", WorkspaceMembersView.as_view(), name="workspace_members"),
 ]
