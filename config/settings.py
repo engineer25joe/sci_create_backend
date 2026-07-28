@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'apps.identity',
     'apps.system',
+    'apps.ai_core',
+    'libs.ai_abstraction',
 ]
 
 # Our custom User model replaces Django's default.
