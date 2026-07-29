@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/v1/identity/', include('apps.identity.urls')),
     path('api/v1/system/', include('apps.system.urls')),
     path('api/v1/ai/', include('apps.ai_core.urls')),
+    path('api/v1/content/', include('apps.content.urls')),
 ]
