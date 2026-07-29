@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'apps.identity',
     'apps.system',
     'apps.ai_core',
+    'apps.billing',
     'libs.ai_abstraction',
 ]
 
