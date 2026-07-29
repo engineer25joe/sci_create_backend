@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.billing.models import CreditTransaction, CreditWallet
+from apps.billing.models import CreditTransaction, CreditWallet, Plan, Subscription
 
 
 @admin.register(CreditWallet)
@@ -20,3 +20,16 @@ class CreditTransactionAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ("name", "tier", "billing_interval", "price_minor_units", "currency", "monthly_credit_allowance", "is_active")
+    list_filter = ("tier", "billing_interval", "is_active")
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("workspace", "plan", "status", "current_period_end")
+    list_filter = ("status",)
+    search_fields = ("workspace__name",)
