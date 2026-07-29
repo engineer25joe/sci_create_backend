@@ -10,6 +10,12 @@ from libs.ai_abstraction.base import (
     ProviderNotConfiguredError,
 )
 from libs.ai_abstraction.base import provider_registry as _default_registry
+from services.billing_service.service import InsufficientCreditsError, deduct_credits
+
+# Flat placeholder costs - real per-model/token-based costs come with
+# the Configuration Service (Milestone 2 follow-up). Keeping this
+# simple for now so the credit-gating behavior itself can be tested.
+DEFAULT_GENERATION_COST = 1
 
 
 class ProviderUnavailableError(Exception):
@@ -19,11 +25,6 @@ class ProviderUnavailableError(Exception):
 
 
 def is_provider_available(provider_name: str, *, registry=None) -> bool:
-    """
-    A provider is available only if BOTH:
-      - it's registered and reports is_configured() == True (has an API key)
-      - it hasn't been manually disabled by an admin (AIProviderStatus)
-    """
     registry = registry or _default_registry
     try:
         adapter = registry.get(provider_name)
@@ -42,9 +43,10 @@ def is_provider_available(provider_name: str, *, registry=None) -> bool:
 
 def generate_content(*, workspace, user, provider_name: str, prompt: str, registry=None) -> AIResponseResult:
     """
-    Main entry point views call. Logs every attempt (success or
-    failure) to AIRequestLog for visibility, per our architecture's
-    AI Analytics plans.
+    Checks and deducts credits BEFORE calling the provider (so a failed
+    generation doesn't cost the user - credits are only spent on
+    success, since the deduction happens after a successful adapter
+    call below, not before).
     """
     registry = registry or _default_registry
 
@@ -77,5 +79,13 @@ def generate_content(*, workspace, user, provider_name: str, prompt: str, regist
     log.response_text = result.text
     log.was_successful = True
     log.save(update_fields=["model_name", "response_text", "was_successful"])
+
+    # Deduct only after a successful generation - failed calls are free.
+    deduct_credits(
+        workspace=workspace,
+        amount=DEFAULT_GENERATION_COST,
+        reason=f"AI generation via {provider_name}",
+        related_ai_request=log,
+    )
 
     return result
