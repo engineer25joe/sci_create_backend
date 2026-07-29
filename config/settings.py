@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.billing',
     'apps.content',
     'apps.planner',
+    'apps.campaigns',
     'libs.ai_abstraction',
 ]
 
