@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.content',
     'apps.planner',
     'apps.campaigns',
+    'apps.notifications',
     'libs.ai_abstraction',
 ]
 
