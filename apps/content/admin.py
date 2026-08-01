@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.content.models import Content, ContentVersion
+from apps.content.models import Content, ContentAnalytics, ContentVersion
 
 
 @admin.register(Content)
@@ -17,3 +17,8 @@ class ContentVersionAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(ContentAnalytics)
+class ContentAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ("content", "views", "likes", "comments", "shares", "last_updated")

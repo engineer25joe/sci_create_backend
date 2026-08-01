@@ -91,3 +91,21 @@ class ContentVersion(models.Model):
 
     def __str__(self):
         return f"Version of {self.content_id} @ {self.created_at}"
+
+
+class ContentAnalytics(models.Model):
+    """
+    Basic engagement snapshot per Content item. Manually updatable for
+    now (via API/admin) - Phase 2 social integrations will populate
+    this automatically by pulling from each connected platform's API.
+    """
+
+    content = models.OneToOneField(Content, on_delete=models.CASCADE, related_name="analytics")
+    views = models.PositiveIntegerField(default=0)
+    likes = models.PositiveIntegerField(default=0)
+    comments = models.PositiveIntegerField(default=0)
+    shares = models.PositiveIntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Analytics for {self.content}"
