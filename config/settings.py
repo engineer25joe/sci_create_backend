@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
     'apps.identity',
     'apps.system',
     'apps.ai_core',
@@ -45,6 +46,7 @@ AUTH_USER_MODEL = 'identity.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -114,6 +116,16 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+# CORS - our mobile (Expo) and web (Vite) apps run on different origins
+# than the API itself, so browsers need explicit permission to call it.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+    r"^http://10\.\d+\.\d+\.\d+:\d+$",  # local network IPs (phone testing via LAN)
+    r"^https://.*\.onrender\.com$",
+]
+CORS_ALLOW_CREDENTIALS = True
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
