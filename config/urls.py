@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/v1/system/', include('apps.system.urls')),
     path('api/v1/ai/', include('apps.ai_core.urls')),
     path('api/v1/content/', include('apps.content.urls')),
+    path('api/v1/billing/', include('apps.billing.urls')),
 ]
