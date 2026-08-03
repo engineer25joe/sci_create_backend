@@ -21,7 +21,7 @@ API_URL_TEMPLATE = (
 
 class GeminiAdapter(AIProviderAdapter):
     name = "gemini"
-    model = "gemini-1.5-flash"
+    model = "gemini-2.5-flash"
 
     def is_configured(self) -> bool:
         return bool(os.environ.get("GEMINI_API_KEY"))
